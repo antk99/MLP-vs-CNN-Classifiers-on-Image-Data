@@ -8,8 +8,8 @@ Please read this entire document before beginning the assignment.
 
 ## Preamble
 
-- This mini-project isdue on March 29th at 11:59pm (EST, Montreal Time).There is a penalty of 2 kpercent
-    penalty forkdays of delay, which means your grade will be scaled to be out of 100 − 2 k. No submission will
+- This mini-project is due on March 29th at 11:59pm (EST, Montreal Time). There is a penalty of 2^k percent
+    penalty for k days of delay, which means your grade will be scaled to be out of 100 − 2^k. No submission will
     be accepted after 6 days of delay.
 - This mini-project is to be completed in groups of three. All members of a group will receive the same grade
     except when a group member is not responding or contributing to the project. If this is the case and there are
@@ -18,7 +18,7 @@ Please read this entire document before beginning the assignment.
     contributions to the project, be aware of the content of the submission and learn the full solution submitted.
 - You will submit your assignment on MyCourses as a group. You must register your group on MyCourses and
     any group member can submit. See MyCourses for details.
-- We recommend to useOverleaffor writing your report andGoogle colabfor coding and running the exper-
+- We recommend to use Overleaf for writing your report and Google colab for coding and running the exper-
     iments. The latter also gives access to the required computational resources. Both platforms enable remote
     collaborations.
 - There are additional cloud compute resources available for this project. Please check MyCourses for instructions
@@ -31,25 +31,20 @@ Please read this entire document before beginning the assignment.
 
 ## Background
 
-In this miniproject, you willimplement a multilayer perceptron from scratch, and use it toclassify image data.
+In this miniproject, you will implement a multilayer perceptron from scratch, and use it to classify image data.
 The goal is to implement a basic neural network and its training algorithm from scratch and get hands-on experience
 with important decisions that you have to make while training these models. You will also have a chance to experiment
-withconvolutional neural networks.
+with convolutional neural networks.
 
 ## Task 1: Acquire the data
 
-Your first task is to acquire the image dataset. You will be using only one dataset in your experiments:Fashion-
-MNIST. Use the Fashion-MNIST dataset with the default train and test partitions. You can use existing machine
-
-
-```
-Figure 1: An MLP with 2 hidden layers each having 4 units.
-```
-learning libraries to load the dataset. Note that while working with multilayer perceptrons, after loading the data, you
+Your first task is to acquire the image dataset. You will be using only one dataset in your experiments: Fashion-
+MNIST. Use the Fashion-MNIST dataset with the default train and test partitions. You can use existing machine learning 
+libraries to load the dataset. Note that while working with multilayer perceptrons, after loading the data, you
 will have to vectorize it so that it can have the appropriate dimensions. Also do not forget to normalize the training
-and test set (seehttps://cs231n.github.io/neural-networks-2/#datapre).
+and test set (see https://cs231n.github.io/neural-networks-2/#datapre).
 
-Based on your previous miniprojects, you might be asking the question: where are the features? Well, this is the whole
+Based on your previous mini projects, you might be asking the question: where are the features? Well, this is the whole
 point of using neural nets: instead of hand-designing the features, you train the model so that the feature extractor is
 also learned together with the classifier on top.
 
@@ -61,35 +56,35 @@ it from scratch based on the code available in the slides. Your implementation s
 the mini-batch gradient descent algorithm used (e.g., SGD).
 
 You are free to implement the MLP as you see fit, but you should follow the equations that are presented in the
-lecture slides, and you must implement it from scratch (i.e., youcannotuse TensorFlow or PyTorch or any other
+lecture slides, and you must implement it from scratch (i.e., you cannot use TensorFlow or PyTorch or any other
 library). Using the Numpy package is encouraged. Regarding the implementation, we recommend the following
 approach:
 
 - Implement the MLP as a python class. The constructor for the class should take as input the activation function
-    (e.g., ReLU), the number of hidden layers (e.g., 2 ) and the number of units in the hidden layers (e.g.,[64,64])
+    (e.g., ReLU), the number of hidden layers (e.g., 2 ) and the number of units in the hidden layers (e.g., [64,64])
     and it should initialize the weights and biases (with an initializer of your choice) as well as other important
     properties of the MLP.
 - The class should have (at least) two functions:
-    - Afitfunction, which takes the training data (i.e.,Xandy)—as well as other hyperparameters (e.g., the
-       learning rate and number of gradient descent iterations)—as input. This function should train your model
+    - A fit function, which takes the training data (i.e.,X and y) — as well as other hyperparameters (e.g., the
+       learning rate and number of gradient descent iterations) — as input. This function should train your model
        by modifying the model parameters.
-    - Apredictfunction, which takes a set of input points (i.e.,X) as input and outputs predictions (i.e.,yˆ)
+    - A predict function, which takes a set of input points (i.e., X) as input and outputs predictions (i.e., yˆ)
        for these points.
-- In addition to the model classes, you should also define a functionsevaluateaccto evaluate the model
-    accuracy. This function should take the true labels (i.e.,y), and target labels (i.e.,yˆ) as input, and it should
+- In addition to the model classes, you should also define a functions evaluateacc to evaluate the model
+    accuracy. This function should take the true labels (i.e., y), and target labels (i.e., yˆ) as input, and it should
     output the accuracy score.
 
-You are also free to use any Python libraries you like to tune the hyper-parameters; see for examplehttps://
-scikit-learn.org/stable/modules/grid_search.html.
+You are also free to use any Python libraries you like to tune the hyper-parameters; see for example 
+https://scikit-learn.org/stable/modules/grid_search.html.
 
 
 ## Task 3: Run the experiments and report
 
 The goal of the experiments in this part is to have you explore the consequences of important decisions made while
-training neural networks.Split the dataset into training and test sets. Use test set to estimate performance in all of the
-experiments after training the model with training set. Evaluate the performance using accuracy.You are welcome to
+training neural networks. Split the dataset into training and test sets. Use test set to estimate performance in all of the
+experiments after training the model with training set. Evaluate the performance using accuracy. You are welcome to
 perform any experiments and analyses you see fit (e.g., the effect of data augmentation / L1-L2 regularization / number
-of hidden layers /... on accuracy),but at a minimum you must complete the following experiments in the order
+of hidden layers /... on accuracy), but at a minimum you must complete the following experiments in the order
 stated below:
 
 1. First of all, create three different models: (1) an MLP with no hidden layers, i.e., it directly maps the inputs
@@ -123,10 +118,9 @@ Note 1: The above experiments are the minimum requirements that you must complet
 is open-ended.
 
 For example, you might investigate the effect of the width (number of units in the hidden layers) of the MLP on its test
-accuracy or the effect of the CNN’s convolutinal layer hyperparameters (number of filters, kernel size, stride, padding,
-
-... ) on its test accuracy. It is also possible to examine the effect of different dropout node proportions on the final
-performance. Another interesting thing to report might be training the MLP and CNN with 10 k, k∈ { 0 , 1 , 2 , 3 , 4 }
+accuracy or the effect of the CNN’s convolutinal layer hyperparameters (number of filters, kernel size, stride, padding, ... )
+on its test accuracy. It is also possible to examine the effect of different dropout node proportions on the final
+performance. Another interesting thing to report might be training the MLP and CNN with 10 k, k ∈ { 0 , 1 , 2 , 3 , 4 }
 images and plotting the test accuracy. You do not need to do all of these things or tune every parameter, but you should
 demonstrate creativity, rigour, and an understanding of the course material in how you run your chosen experiments
 and how you report on them in your write-up.
