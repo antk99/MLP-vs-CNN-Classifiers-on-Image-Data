@@ -12,7 +12,7 @@ def ReLu(arr):
 
 def softmax(arr):
     e = np.exp(arr)
-    return e/e.sum()
+    return e / e.sum()
 
 
 def evaluate_acc(y_test, y_pred):
@@ -43,7 +43,7 @@ class MLP:
 
         # initializing weights and biases (bias ignored for now)
         for i in range(len(layers) - 1):
-            self.weights.append(np.random.randn(layers[i], layers[i+1]) * 0.75)  # idk why * .01 it was in the slides
+            self.weights.append(np.random.randn(layers[i], layers[i + 1]) * 0.75)  # idk why * .01 it was in the slides
 
     def fit(self, x, y):
         N, D = x.shape
@@ -57,8 +57,8 @@ class MLP:
             yh = softmax(np.dot(z, w))  # N
             dy = yh - y  # N
             dw = np.dot(z.T, dy) / N  # M x C
-            dz = np.dot(dy, w.T)    # N x M
-            dv = np.dot(x.T, dz * q_01)/N   # D x M
+            dz = np.dot(dy, w.T)  # N x M
+            dv = np.dot(x.T, dz * q_01) / N  # D x M
             return [dv, dw]
 
         learning_rate = 0.001
@@ -78,7 +78,7 @@ class MLP:
             t += 1
             norms = np.array([np.linalg.norm(g) for g in grad])
             if (t % 10) == 0:
-                print(f"{t/max_iters*100}% complete")
+                print(f"{t / max_iters * 100}% complete")
 
         return self
 
@@ -102,13 +102,137 @@ if __name__ == '__main__':
     X_test = X_test - np.mean(X_test)
     X_test = X_test / np.std(X_test)
 
+    #########################################################
+    ######################## MLP ############################
+    #########################################################
+
     # model = MLP(X_train.shape[1], 10, [128])
     # model.fit(X_train, y_train)
     # y_pred = np.argmax(model.predict(X_test), axis=1)
     # print(y_pred)
     # print(evaluate_acc(y_test, y_pred))
 
-    model = sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(128, 128), activation='tanh', solver='sgd')
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    print(evaluate_acc(y_test, y_pred))
+    #########################################################
+    #################### MLP - SKLEARN ######################
+    #########################################################
+
+    # model = sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(128, 128), activation='tanh', solver='sgd')
+    # model.fit(X_train, y_train)
+    # y_pred = model.predict(X_test)
+    # print(evaluate_acc(y_test, y_pred))
+
+    #########################################################
+    ######################## CNN ############################
+    #########################################################
+
+    from torch.utils.data import Dataset, DataLoader
+
+    class FashionMNISTDataset(Dataset):
+        '''Fashion MNIST Dataset'''
+
+        def __init__(self, X, y, transform=None):
+            """
+            Args:
+                csv_file (string): Path to the csv file
+                transform (callable): Optional transform to apply to sample
+            """
+
+            self.X = X.reshape(-1, 1, 28, 28)  # .astype(float);
+            self.Y = y
+
+            self.transform = transform
+
+        def __len__(self):
+            return len(self.X)
+
+        def __getitem__(self, idx):
+            item = self.X[idx]
+            label = self.Y[idx]
+
+            if self.transform:
+                item = self.transform(item)
+
+            return (item, label)
+
+
+    import torch
+    import torch.nn as nn
+    from torch.autograd import Variable
+
+    num_epochs = 5
+    num_classes = 10
+    batch_size = 100
+    learning_rate = 0.001
+
+    train_dataset = FashionMNISTDataset(X_train, y_train)
+    test_dataset = FashionMNISTDataset(X_test, y_test)
+
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                               batch_size=batch_size,
+                                               shuffle=True)
+    test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+                                              batch_size=batch_size,
+                                              shuffle=False)
+
+
+    class CNN(nn.Module):
+        def __init__(self, num_classes=10):
+            super(CNN, self).__init__()
+            self.layer1 = nn.Sequential(
+                nn.Conv2d(1, 128, kernel_size=5, padding=2),
+                nn.BatchNorm2d(128),
+                nn.ReLU(),
+                nn.MaxPool2d(2))
+            self.layer2 = nn.Sequential(
+                nn.Conv2d(128, 128, kernel_size=5, padding=2),
+                nn.BatchNorm2d(128),
+                nn.ReLU(),
+                nn.MaxPool2d(2))
+            self.fc = nn.Linear(7 * 7 * 128, 10)
+
+        def forward(self, x):
+            out = self.layer1(x)
+            out = self.layer2(out)
+            out = out.view(out.size(0), -1)
+            out = self.fc(out)
+            return out
+
+
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    model = CNN(num_classes).to(device)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    total_step = len(train_loader)
+    for epoch in range(num_epochs):
+        for i, (images, labels) in enumerate(train_loader):
+            images = Variable(images.float())
+            labels = Variable(labels)
+
+            # Forward pass
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+
+            # Backward and optimize
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            if (i + 1) % 100 == 0:
+                print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
+                      .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
+
+    model.eval()  # eval mode (batchnorm uses moving mean/variance instead of mini-batch mean/variance)
+    with torch.no_grad():
+        correct = 0
+        total = 0
+        for images, labels in test_loader:
+            images = Variable(images.float())
+            labels = Variable(labels)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    print('Test Accuracy of the model on the 10000 test images: {} %'.format(100 * correct / total))
