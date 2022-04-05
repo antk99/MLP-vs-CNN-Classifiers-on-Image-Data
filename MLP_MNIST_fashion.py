@@ -251,36 +251,6 @@ class GradientDescent:
         return params
 
 
-if __name__ == '__main__':
-    import numpy as np
-    import mnist_reader
-
-    temp = []
-
-    X_train, y_train = mnist_reader.load_mnist('data/fashion', kind='train')
-    X_test, y_test = mnist_reader.load_mnist('data/fashion', kind='t10k')
-
-    # Data normalization
-    X_train = X_train - np.mean(X_train)
-    X_train = (X_train / np.std(X_train))
-    X_test = X_test - np.mean(X_test)
-    X_test = (X_test / np.std(X_test))
-
-
-    
-
-    list_of_acc = []
-
-    first = True
-
-    model = MLP(X_train.shape[1], 10, [128], activation_fn=ReLu)
-    model.fit(X_train, y_train)
-    #print(model.params)
-    y_pred = np.argmax(model.predict(X_test), axis=1)
-    print(evaluate_acc(y_test, y_pred))
-
-    
-
 
 
 
