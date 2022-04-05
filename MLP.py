@@ -1,7 +1,6 @@
 import numpy as np
 import warnings
-
-import sklearn.neural_network
+import pandas as pd
 
 warnings.filterwarnings('ignore')
 
@@ -32,6 +31,15 @@ def one_hot(a, num_classes):
 class MLP:
 
     def __init__(self, num_inputs, num_outputs, num_hidden_units=[64, 64], activation_fn=ReLu):
+        """
+        Multilayer perceptron model
+        :param num_inputs: int - the number of inputs of the data
+        :param num_outputs: int - the number of classes
+        :param num_hidden_units: int list - the number of hidden units in the ith hidden layer
+        :param activation_fn: function - the desired activation function
+        """
+
+        # storing parameters
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.num_layers = len(num_hidden_units)
@@ -41,13 +49,19 @@ class MLP:
         self.weights = []
         layers = [num_inputs] + num_hidden_units + [num_outputs]
 
-        # initializing weights and biases (bias ignored for now)
+        # randomly initializing weights
         for i in range(len(layers) - 1):
-            self.weights.append(np.random.randn(layers[i], layers[i + 1]) * 0.75)  # idk why * .01 it was in the slides
+            self.weights.append(np.random.randn(layers[i], layers[i + 1]) * 0.01)
 
     def fit(self, x, y):
+        """
+        Learns and stores the parameters of the given training data
+        :param x: np.ndarray - the training feature matrix
+        :param y: np.ndarray - the training labels
+        :return: self
+        """
         N, D = x.shape
-        y = one_hot(y, self.num_outputs)
+        y = one_hot(y, self.num_outputs)    # turns y from N X 1 to N X C for matrix operations
 
         def gradient1(x, y, params):
             v, w = params
@@ -61,11 +75,12 @@ class MLP:
             dv = np.dot(x.T, dz * q_01) / N  # D x M
             return [dv, dw]
 
+        # gradient descent parameters
         learning_rate = 0.001
         max_iters = 1e4
         epsilon = 1e-8
 
-        norms = np.array([np.inf])
+        norms = np.array([np.inf])  # initializing norms
         t = 1
         while np.any(norms > epsilon) and t < max_iters:
             grad = gradient1(x, y, self.weights)
@@ -74,15 +89,22 @@ class MLP:
                     t = max_iters
                     break
 
-                self.weights[p] = self.weights[p] - (learning_rate * grad[p])
+                self.weights[p] = self.weights[p] - (learning_rate * grad[p])   # updating weights in direction of grad
             t += 1
             norms = np.array([np.linalg.norm(g) for g in grad])
+
+            # monitoring loop progress
             if (t % 10) == 0:
                 print(f"{t / max_iters * 100}% complete")
 
         return self
 
     def predict(self, x):
+        """
+        Computes the weights * input for each layer to determine the model's prediction, yh
+        :param x: np.ndarray - the test feature matrix
+        :return: np.ndarray - the softmax predictions for each instance in the feature matrix x
+        """
         output = x
         for weight_matrix in self.weights:
             output = self.activation_fn(np.dot(output, weight_matrix))
@@ -90,17 +112,32 @@ class MLP:
 
 
 if __name__ == '__main__':
+    # experimental code
+
     import numpy as np
     import mnist_reader
 
+    # loading the data
     X_train, y_train = mnist_reader.load_mnist('data/fashion', kind='train')
     X_test, y_test = mnist_reader.load_mnist('data/fashion', kind='t10k')
 
-    # Data normalization
+    # # data normalization
     X_train = X_train - np.mean(X_train)
     X_train = X_train / np.std(X_train)
     X_test = X_test - np.mean(X_test)
     X_test = X_test / np.std(X_test)
+
+    # # horizontally flipped images
+    # counter = 0
+    # for i in X_train:
+    #     if counter % 100 == 0:
+    #         print(counter)
+    #     y_train = np.append(y_train, y_train[counter])
+    #     counter += 1
+    #     i = i.reshape(28, 28)
+    #     flip = np.fliplr(i)
+    #     i = flip.reshape(1, 784)
+    #     X_train = np.append(X_train, i, axis=0)
 
     #########################################################
     ######################## MLP ############################
@@ -113,126 +150,114 @@ if __name__ == '__main__':
     # print(evaluate_acc(y_test, y_pred))
 
     #########################################################
-    #################### MLP - SKLEARN ######################
-    #########################################################
-
-    # model = sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(128, 128), activation='tanh', solver='sgd')
-    # model.fit(X_train, y_train)
-    # y_pred = model.predict(X_test)
-    # print(evaluate_acc(y_test, y_pred))
-
-    #########################################################
     ######################## CNN ############################
     #########################################################
 
-    from torch.utils.data import Dataset, DataLoader
+    # PyTorch CNN implementation adapted from the open-source GitHub repo:
+    # https://github.com/kishankg/2-Layer-CNN-with-Pytorch-Fashion-MNIST-/blob/master/2%20Layer%20CNN%20with%20Pytorch%20(Fashion-MNIST).ipynb?fbclid=IwAR1DT6zZ_r_nZ4j6hAWUVrr2sOxJez796DkEmHOH7rX4YXrJi5BMjoLm-nU
 
-    class FashionMNISTDataset(Dataset):
-        '''Fashion MNIST Dataset'''
-
-        def __init__(self, X, y, transform=None):
-            """
-            Args:
-                csv_file (string): Path to the csv file
-                transform (callable): Optional transform to apply to sample
-            """
-
-            self.X = X.reshape(-1, 1, 28, 28)  # .astype(float);
-            self.Y = y
-
-            self.transform = transform
-
-        def __len__(self):
-            return len(self.X)
-
-        def __getitem__(self, idx):
-            item = self.X[idx]
-            label = self.Y[idx]
-
-            if self.transform:
-                item = self.transform(item)
-
-            return (item, label)
-
-
-    import torch
-    import torch.nn as nn
-    from torch.autograd import Variable
-
-    num_epochs = 5
-    num_classes = 10
-    batch_size = 100
-    learning_rate = 0.001
-
-    train_dataset = FashionMNISTDataset(X_train, y_train)
-    test_dataset = FashionMNISTDataset(X_test, y_test)
-
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                               batch_size=batch_size,
-                                               shuffle=True)
-    test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                              batch_size=batch_size,
-                                              shuffle=False)
-
-
-    class CNN(nn.Module):
-        def __init__(self, num_classes=10):
-            super(CNN, self).__init__()
-            self.layer1 = nn.Sequential(
-                nn.Conv2d(1, 128, kernel_size=5, padding=2),
-                nn.BatchNorm2d(128),
-                nn.ReLU(),
-                nn.MaxPool2d(2))
-            self.layer2 = nn.Sequential(
-                nn.Conv2d(128, 128, kernel_size=5, padding=2),
-                nn.BatchNorm2d(128),
-                nn.ReLU(),
-                nn.MaxPool2d(2))
-            self.fc = nn.Linear(7 * 7 * 128, 10)
-
-        def forward(self, x):
-            out = self.layer1(x)
-            out = self.layer2(out)
-            out = out.view(out.size(0), -1)
-            out = self.fc(out)
-            return out
-
-
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model = CNN(num_classes).to(device)
-
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
-    total_step = len(train_loader)
-    for epoch in range(num_epochs):
-        for i, (images, labels) in enumerate(train_loader):
-            images = Variable(images.float())
-            labels = Variable(labels)
-
-            # Forward pass
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-
-            # Backward and optimize
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            if (i + 1) % 100 == 0:
-                print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                      .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
-
-    model.eval()  # eval mode (batchnorm uses moving mean/variance instead of mini-batch mean/variance)
-    with torch.no_grad():
-        correct = 0
-        total = 0
-        for images, labels in test_loader:
-            images = Variable(images.float())
-            labels = Variable(labels)
-            outputs = model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-    print('Test Accuracy of the model on the 10000 test images: {} %'.format(100 * correct / total))
+    # from torch.utils.data import Dataset, DataLoader
+    #
+    # class FashionMNISTDataset(Dataset):
+    #
+    #     def __init__(self, X, y, transform=None):
+    #
+    #         self.X = X.reshape(-1, 1, 28, 28)  # .astype(float);
+    #         self.Y = y
+    #
+    #         self.transform = transform
+    #
+    #     def __len__(self):
+    #         return len(self.X)
+    #
+    #     def __getitem__(self, idx):
+    #         item = self.X[idx]
+    #         label = self.Y[idx]
+    #
+    #         if self.transform:
+    #             item = self.transform(item)
+    #
+    #         return (item, label)
+    #
+    #
+    # import torch
+    # import torch.nn as nn
+    # from torch.autograd import Variable
+    #
+    # num_epochs = 5
+    # num_classes = 10
+    # batch_size = 100
+    # learning_rate = 0.001
+    #
+    # train_dataset = FashionMNISTDataset(X_train, y_train)
+    # test_dataset = FashionMNISTDataset(X_test, y_test)
+    #
+    # train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+    #                                            batch_size=batch_size,
+    #                                            shuffle=True)
+    # test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+    #                                           batch_size=batch_size,
+    #                                           shuffle=False)
+    #
+    #
+    # class CNN(nn.Module):
+    #     def __init__(self, num_classes=10):
+    #         super(CNN, self).__init__()
+    #         self.layer1 = nn.Sequential(
+    #             nn.Conv2d(1, 128, kernel_size=5, padding=2),
+    #             nn.BatchNorm2d(128),
+    #             nn.ReLU(),
+    #             nn.MaxPool2d(2))
+    #         self.layer2 = nn.Sequential(
+    #             nn.Conv2d(128, 128, kernel_size=5, padding=2),
+    #             nn.BatchNorm2d(128),
+    #             nn.ReLU(),
+    #             nn.MaxPool2d(2))
+    #         self.fc = nn.Linear(7 * 7 * 128, 10)
+    #
+    #     def forward(self, x):
+    #         out = self.layer1(x)
+    #         out = self.layer2(out)
+    #         out = out.view(out.size(0), -1)
+    #         out = self.fc(out)
+    #         return out
+    #
+    #
+    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    # model = CNN(num_classes).to(device)
+    #
+    # criterion = nn.CrossEntropyLoss()
+    # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    #
+    # total_step = len(train_loader)
+    # for epoch in range(num_epochs):
+    #     for i, (images, labels) in enumerate(train_loader):
+    #         images = Variable(images.float())
+    #         labels = Variable(labels)
+    #
+    #         # Forward pass
+    #         outputs = model(images)
+    #         loss = criterion(outputs, labels)
+    #
+    #         # Backward and optimize
+    #         optimizer.zero_grad()
+    #         loss.backward()
+    #         optimizer.step()
+    #
+    #         if (i + 1) % 100 == 0:
+    #             print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
+    #                   .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
+    #
+    # model.eval()  # eval mode (batchnorm uses moving mean/variance instead of mini-batch mean/variance)
+    # with torch.no_grad():
+    #     correct = 0
+    #     total = 0
+    #     for images, labels in test_loader:
+    #         images = Variable(images.float())
+    #         labels = Variable(labels)
+    #         outputs = model(images)
+    #         _, predicted = torch.max(outputs.data, 1)
+    #         total += labels.size(0)
+    #         correct += (predicted == labels).sum().item()
+    #
+    # print('Test Accuracy of the model on the 10000 test images: {} %'.format(100 * correct / total))
