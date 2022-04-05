@@ -46,6 +46,15 @@ def one_hot(a, num_classes):
 class MLP:
 
     def __init__(self, num_inputs, num_outputs, num_hidden_units=[64, 64], activation_fn=ReLu):
+        """
+        Multilayer perceptron model
+        :param num_inputs: int - the number of inputs of the data
+        :param num_outputs: int - the number of classes
+        :param num_hidden_units: int list - the number of hidden units in the ith hidden layer
+        :param activation_fn: function - the desired activation function
+        """
+
+        # storing parameters
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.num_layers = len(num_hidden_units)
@@ -55,13 +64,13 @@ class MLP:
         self.weights = []
         layers = [num_inputs] + num_hidden_units + [num_outputs]
 
-        # initializing weights and biases (bias ignored for now)
+        # initializing weights
         for i in range(len(layers) - 1):
-            self.weights.append(np.random.randn(layers[i], layers[i+1]) * .01)  # idk why * .01 it was in the slides
+            self.weights.append(np.random.randn(layers[i], layers[i+1]) * .01)
 
     def fit(self, x, y):
         N, D = x.shape
-        y = one_hot(y, self.num_outputs)
+        y = one_hot(y, self.num_outputs)    # turns y from N X 1 to N X C for matrix operations
         
         def gradient0(x, y, params):
             w = params # D x C
@@ -161,8 +170,7 @@ class MLP:
             dv = np.dot(s.T, dz * q_01)/N   # D x M (x is now replaced by s at this stage compared to 1 layer)
             dq = np.dot(dz * q_01, v)
             du = np.dot(x.T, dq * r_01)/N
-            
-            
+
             ################### tanh du:
             #r_tanh = 1-tanh(x)**2
             #dq = np.dot(dz * q_tanh, v)
